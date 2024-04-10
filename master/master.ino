@@ -32,6 +32,7 @@ int state_update_slave_id;
 
 void updateSlave(int slave_id)
 {
+    if (state_update_slave_id == slave_id) return;
     Serial.printf("Update slave %d\n", slave_id);
     // Retry always if the write fails
     if (!_ModbusRTUClient.holdingRegisterWrite(slave_id, 0x00, process_state)) {
@@ -57,6 +58,7 @@ void updateSlave(int slave_id)
 }
 
 void printUpdateFrom(int slave_id) {
+    state_update_slave_id = slave_id;
     Serial.printf("Update from %d: state:%s, led:%s\n",
         slave_id,
         process_state == PROCESS_IDLE ? "IDLE" : process_state == PROCESS_MARVIN ? "MARVIN" : process_state == PROCESS_RECORDING ? "REC" : "ERROR",
