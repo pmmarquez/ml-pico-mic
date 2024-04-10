@@ -32,6 +32,7 @@ enum {
     PROCESS_RECORDING = 2,
 };
 long process_state = PROCESS_IDLE;
+long process_last_state = PROCESS_IDLE;
 unsigned long process_timer = 0;
 void process(ei_impulse_result_t result);
 
@@ -138,10 +139,14 @@ void loop1()
 
 // process control state machine
 void process(ei_impulse_result_t result) {
+    if (process_state != process_last_state) {
+        process_timer = millis();
+    }
     switch (process_state) {
     case PROCESS_IDLE:
         if (result.classification[2].value > 0.6) { // marvin
             process_state = PROCESS_MARVIN;
+            process_last_state = PROCESS_MARVIN;
             led_last_state = led_state;
             led_state = LED_ON;
             process_timer = millis();
@@ -150,28 +155,33 @@ void process(ei_impulse_result_t result) {
     case PROCESS_MARVIN:
         if (result.classification[3].value > 0.3 && led_last_state == LED_BLINK_FAST) { // off
             process_state = PROCESS_IDLE;
+            process_last_state = PROCESS_IDLE;
             led_state = LED_OFF;
             break;
         }
         if (result.classification[4].value > 0.4 && led_last_state == LED_OFF) { // on
             process_state = PROCESS_IDLE;
+            process_last_state = PROCESS_IDLE;
             led_state = LED_BLINK_FAST;
             break;
         }
         // if (result.classification[2].value > 0.5) { // forward
         //     process_state = PROCESS_RECORDING;
+        //     process_last_state = PROCESS_RECORDING;
         //     set_led(LED_BLINK_SLOW);
         //     process_timer = millis();
         //     break;
         // }
         if (millis() - process_timer > 4000) {
             process_state = PROCESS_IDLE;
+            process_last_state = PROCESS_IDLE;
             led_state = led_last_state;
         }
         break;
     case PROCESS_RECORDING:
         if (millis() - process_timer > 5000) {
             process_state = PROCESS_IDLE;
+            process_last_state = PROCESS_IDLE;
             led_state = LED_OFF;
         }
         break;

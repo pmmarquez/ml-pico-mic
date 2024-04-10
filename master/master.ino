@@ -34,14 +34,34 @@ void updateSlave(int slave_id)
 {
     Serial.printf("Update slave %d\n", slave_id);
     // Retry always if the write fails
-    if (!_ModbusRTUClient.holdingRegisterWrite(slave_id, 0x00, process_state))
+    if (!_ModbusRTUClient.holdingRegisterWrite(slave_id, 0x00, process_state)) {
+        delay(10);
         _ModbusRTUClient.holdingRegisterWrite(slave_id, 0x00, process_state);
-    if (!_ModbusRTUClient.holdingRegisterWrite(slave_id, 0x01, led_state))
+    }
+    delay(10);
+    if (!_ModbusRTUClient.holdingRegisterWrite(slave_id, 0x01, led_state)) {
+        delay(10);
         _ModbusRTUClient.holdingRegisterWrite(slave_id, 0x01, led_state);
-    if (!_ModbusRTUClient.coilWrite(slave_id, 0x00, 1))
+    }
+    delay(10);
+    if (!_ModbusRTUClient.coilWrite(slave_id, 0x00, 1)) {
+        delay(10);
         _ModbusRTUClient.coilWrite(slave_id, 0x00, 1);
-    if (!_ModbusRTUClient.coilWrite(slave_id, 0x00, 0))
+    }
+    delay(10);
+    if (!_ModbusRTUClient.coilWrite(slave_id, 0x00, 0)) {
+        delay(10);
         _ModbusRTUClient.coilWrite(slave_id, 0x00, 0);
+    }
+    delay(10);
+}
+
+void printUpdateFrom(int slave_id) {
+    Serial.printf("Update from %d: state:%s, led:%s\n",
+        slave_id,
+        process_state == PROCESS_IDLE ? "IDLE" : process_state == PROCESS_MARVIN ? "MARVIN" : process_state == PROCESS_RECORDING ? "REC" : "ERROR",
+        led_state == LED_OFF ? "OFF" : led_state == LED_ON ? "ON" : led_state == LED_BLINK_FAST ? "FAST" : led_state == LED_BLINK_SLOW ? "SLOW" : "ERROR");
+    
 }
 
 void setup() {
@@ -64,24 +84,26 @@ void loop() {
         for (int i = 1; i < (SLAVE_NUMBER + 1); i++)
         {
             _process_state = _ModbusRTUClient.inputRegisterRead(i, 0x00);
+            delay(10);
             _led_state = _ModbusRTUClient.inputRegisterRead(i, 0x01);
+            delay(10);
             // Retry if the read fails
             if (_process_state == -1)
                 _process_state = _ModbusRTUClient.inputRegisterRead(i, 0x00);
+            delay(10);
             if (_led_state == -1)
                 _led_state = _ModbusRTUClient.inputRegisterRead(i, 0x01);
+            delay(10);
 
             Serial.printf("Slave %d: state:%s, led:%s\n",
                 i,
                 _process_state == PROCESS_IDLE ? "IDLE" : _process_state == PROCESS_MARVIN ? "MARVIN" : _process_state == PROCESS_RECORDING ? "REC" : "ERROR",
                 _led_state == LED_OFF ? "OFF" : _led_state == LED_ON ? "ON" : _led_state == LED_BLINK_FAST ? "FAST" : _led_state == LED_BLINK_SLOW ? "SLOW" : "ERROR");
+            Serial.printf("Master: state:%s, led:%s\n",
+                process_state == PROCESS_IDLE ? "IDLE" : process_state == PROCESS_MARVIN ? "MARVIN" : process_state == PROCESS_RECORDING ? "REC" : "ERROR",
+                led_state == LED_OFF ? "OFF" : led_state == LED_ON ? "ON" : led_state == LED_BLINK_FAST ? "FAST" : led_state == LED_BLINK_SLOW ? "SLOW" : "ERROR");
 
             if (_process_state != -1 && _led_state != -1) {
-                if (process_state == PROCESS_IDLE && _process_state == PROCESS_MARVIN) {
-                    process_state = PROCESS_MARVIN;
-                    led_state = LED_ON;
-                    master_state = SET_STATE;
-                }
                 if (process_state == PROCESS_MARVIN && _process_state == PROCESS_IDLE) {
                     process_state = PROCESS_IDLE;
                     if (led_state == LED_ON && _led_state == LED_BLINK_FAST) {
@@ -89,15 +111,17 @@ void loop() {
                     } else {
                         led_state = LED_OFF;
                     }
+                    printUpdateFrom(i);
                     master_state = SET_STATE;
-                };
-            }
-            if (master_state == SET_STATE) {
-                Serial.printf("Update from %d: state:%s, led:%s\n",
-                    i,
-                    process_state == PROCESS_IDLE ? "IDLE" : process_state == PROCESS_MARVIN ? "MARVIN" : process_state == PROCESS_RECORDING ? "REC" : "ERROR",
-                    led_state == LED_OFF ? "OFF" : led_state == LED_ON ? "ON" : led_state == LED_BLINK_FAST ? "FAST" : led_state == LED_BLINK_SLOW ? "SLOW" : "ERROR");
-                break;
+                    break;
+                }
+                if (process_state == PROCESS_IDLE && _process_state == PROCESS_MARVIN) {
+                    process_state = PROCESS_MARVIN;
+                    led_state = LED_ON;
+                    printUpdateFrom(i);
+                    master_state = SET_STATE;
+                    break;
+                }
             }
         }
         break;
@@ -116,14 +140,18 @@ void loop() {
         for (int i = 1; i < (SLAVE_NUMBER + 1); i++)
         {
             _process_state = _ModbusRTUClient.inputRegisterRead(i, 0x00);
+            delay(10);
             _led_state = _ModbusRTUClient.inputRegisterRead(i, 0x01);
+            delay(10);
             // Retry if the read fails
             if (_process_state == -1)
                 _process_state = _ModbusRTUClient.inputRegisterRead(i, 0x00);
+            delay(10);
             if (_led_state == -1)
                 _led_state = _ModbusRTUClient.inputRegisterRead(i, 0x01);
+            delay(10);
 
-            if (_process_state != process_state || _led_state != led_state) {
+            if ((_process_state != process_state || _led_state != led_state) && (_process_state != -1 && _led_state != -1)) {
                 all_states_ok = false;
                 updateSlave(i);
             }
