@@ -1,1 +1,1 @@
-# spe_sensor_embedded_web
+# Keyword spotting AI model
